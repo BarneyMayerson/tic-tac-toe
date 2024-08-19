@@ -12,7 +12,13 @@ class GameController extends Controller
      */
     public function index()
     {
-        //
+        return inertia('Dashboard', [
+            'games' => Game::query()
+                ->with('playerOne')
+                ->whereNull('player_two_id')
+                ->oldest()
+                ->simplePaginate(100),
+        ]);
     }
 
     /**
@@ -33,12 +39,19 @@ class GameController extends Controller
         return to_route(route('games.show', $game));
     }
 
+    public function join(Request $request, Game $game)
+    {
+        $game->update(['player_two_id' => $request->user()->id]);
+
+        return to_route(route('games.show', $game));
+    }
+
     /**
      * Display the specified resource.
      */
     public function show(Game $game)
     {
-        return inertia('Games/Show');
+        return inertia('Games/Show', compact('game'));
     }
 
     /**

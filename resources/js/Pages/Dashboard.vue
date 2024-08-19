@@ -1,12 +1,14 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link } from "@inertiajs/vue3";
+
+const props = defineProps(["games"]);
 </script>
 
 <template>
     <Head title="Dashboard" />
 
-    <AuthenticatedLayout>
+    <AuthenticatedLayout class="text-black dark:text-white">
         <template #header>
             <h2
                 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight"
@@ -28,6 +30,24 @@ import { Head, Link } from "@inertiajs/vue3";
                     >
                         Create Game
                     </Link>
+
+                    <ul class="mt-10 divide-y">
+                        <li
+                            v-for="game in games.data"
+                            :key="game.id"
+                            class="px-2 py-1.5 flex items-center justify-between"
+                        >
+                            <span>{{ game.player_one.name }}</span>
+                            <Link
+                                :href="route('games.join', game.id)"
+                                method="post"
+                                as="button"
+                                class="px-3 py-2 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                                Join Game
+                            </Link>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
