@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Game;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class GameController extends Controller
 {
@@ -16,6 +17,7 @@ class GameController extends Controller
             'games' => Game::query()
                 ->with('playerOne')
                 ->whereNull('player_two_id')
+                ->whereNot('player_one_id', request()->user()->id)
                 ->oldest()
                 ->simplePaginate(100),
         ]);
@@ -36,14 +38,16 @@ class GameController extends Controller
     {
         $game = Game::create(['player_one_id' => $request->user()->id]);
 
-        return to_route(route('games.show', $game));
+        return to_route('games.show', $game);
     }
 
     public function join(Request $request, Game $game)
     {
+        Gate::authorize('join', $game);
+
         $game->update(['player_two_id' => $request->user()->id]);
 
-        return to_route(route('games.show', $game));
+        return to_route('games.show', $game);
     }
 
     /**
