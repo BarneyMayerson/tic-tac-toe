@@ -1,11 +1,14 @@
 <script setup>
 import { ref } from "vue";
+import { router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { computed } from "vue";
 
 const props = defineProps(["game"]);
 
 const boardState = ref([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+const players = ref([]);
 
 const xTurn = computed(
   () => boardState.value.reduce((carry, value) => carry + value, 0) === 0,
@@ -24,6 +27,14 @@ const lines = [
   [0, 4, 8],
   [2, 4, 6],
 ];
+
+Echo.join(`games.${props.game.id}`)
+  .here((users) => (players.value = users))
+  .joining((user) =>
+    router.reload({
+      onSuccess: () => players.value.push(user),
+    }),
+  );
 
 const fillSquare = (index) => {
   boardState.value[index] = xTurn.value ? -1 : 1;
@@ -82,10 +93,10 @@ const fillSquare = (index) => {
           >
             X
           </span>
-          <span>Test User</span>
+          <span>{{ game.player_one.name }}</span>
           <span class="bg-red-500 size-2 rounded-full"></span>
         </li>
-        <li class="flex items-center gap-2">
+        <li v-if="game.player_two" class="flex items-center gap-2">
           <span
             class="bg-gray-300 px-2 py-0.5 font-bold font-mono rounded dark:bg-gray-600"
           >
@@ -94,6 +105,7 @@ const fillSquare = (index) => {
           <span>Ian</span>
           <span class="bg-red-500 size-2 rounded-full"></span>
         </li>
+        <li v-else>Waiting for player two ...</li>
       </ul>
     </main>
   </AuthenticatedLayout>
