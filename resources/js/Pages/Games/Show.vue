@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { onUnmounted, ref } from "vue";
 import { router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { computed } from "vue";
@@ -34,7 +34,15 @@ Echo.join(`games.${props.game.id}`)
     router.reload({
       onSuccess: () => players.value.push(user),
     }),
+  )
+  .leaving(
+    (user) =>
+      (players.value = players.value.filter(({ id }) => id !== user.id)),
   );
+
+onUnmounted(() => {
+  Echo.leave(`games.${props.game.id}`);
+});
 
 const fillSquare = (index) => {
   boardState.value[index] = xTurn.value ? -1 : 1;
@@ -94,7 +102,14 @@ const fillSquare = (index) => {
             X
           </span>
           <span>{{ game.player_one.name }}</span>
-          <span class="bg-red-500 size-2 rounded-full"></span>
+          <span
+            :class="{
+              '!bg-green-500': players.find(
+                ({ id }) => id === game.player_one_id,
+              ),
+            }"
+            class="bg-red-500 size-2 rounded-full"
+          ></span>
         </li>
         <li v-if="game.player_two" class="flex items-center gap-2">
           <span
@@ -103,7 +118,14 @@ const fillSquare = (index) => {
             O
           </span>
           <span>Ian</span>
-          <span class="bg-red-500 size-2 rounded-full"></span>
+          <span
+            :class="{
+              '!bg-green-500': players.find(
+                ({ id }) => id === game.player_two_id,
+              ),
+            }"
+            class="bg-red-500 size-2 rounded-full"
+          ></span>
         </li>
         <li v-else>Waiting for player two ...</li>
       </ul>
