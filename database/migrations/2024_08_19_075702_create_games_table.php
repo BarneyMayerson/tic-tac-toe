@@ -25,6 +25,7 @@ return new class extends Migration {
                 ->references('id')
                 ->on('users')
                 ->cascadeOnDelete();
+            $table->string('state')->nullable();
             $table->timestamps();
         });
     }

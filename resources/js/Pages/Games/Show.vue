@@ -9,7 +9,7 @@ import { computed } from "vue";
 
 const props = defineProps(["game"]);
 
-const boardState = ref([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+const boardState = ref(props.game.state ?? [0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const gameState = useGameState();
 const players = ref([]);
 
@@ -49,6 +49,10 @@ onUnmounted(() => {
 
 const fillSquare = (index) => {
   boardState.value[index] = xTurn.value ? -1 : 1;
+
+  router.put(route("games.update", props.game.id), {
+    state: boardState.value,
+  });
 
   checkForVictory();
 };
@@ -130,7 +134,7 @@ const resetGame = () => {
           >
             O
           </span>
-          <span>Ian</span>
+          <span>{{ game.player_two.name }}</span>
           <span
             :class="{
               '!bg-green-500': players.find(
