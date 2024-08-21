@@ -1,5 +1,5 @@
 <script setup>
-import { onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -40,7 +40,7 @@ const lines = [
   [2, 4, 6],
 ];
 
-Echo.join(`games.${props.game.id}`)
+const channel = Echo.join(`games.${props.game.id}`)
   .here((users) => (players.value = users))
   .joining((user) =>
     router.reload({
@@ -51,15 +51,11 @@ Echo.join(`games.${props.game.id}`)
     (user) =>
       (players.value = players.value.filter(({ id }) => id !== user.id)),
   )
-  .listen("PlayerMadeMove", ({ game }) => {
-    boardState.value = game.state;
+  .listenForWhisper("PlayerMadeMove", ({ state }) => {
+    boardState.value = state;
 
     checkForVictory();
   });
-
-onUnmounted(() => {
-  Echo.leave(`games.${props.game.id}`);
-});
 
 const fillSquare = (index) => {
   if (!yourTurn.value) {
@@ -68,11 +64,18 @@ const fillSquare = (index) => {
 
   boardState.value[index] = xTurn.value ? -1 : 1;
 
+  updateOpponent();
+  checkForVictory();
+};
+
+const updateOpponent = () => {
   router.put(route("games.update", props.game.id), {
     state: boardState.value,
   });
 
-  checkForVictory();
+  channel.whisper("PlayerMadeMove", {
+    state: boardState.value,
+  });
 };
 
 const checkForVictory = () => {
@@ -108,10 +111,14 @@ const resetGame = () => {
 
   gameState.change(gameStates.InProgress);
 
-  router.put(route("games.update", props.game.id), {
-    state: boardState.value,
-  });
+  updateOpponent();
 };
+
+onMounted(checkForVictory);
+
+onUnmounted(() => {
+  Echo.leave(`games.${props.game.id}`);
+});
 </script>
 
 <template>
