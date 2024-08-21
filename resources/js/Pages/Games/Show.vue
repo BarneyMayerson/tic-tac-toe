@@ -1,6 +1,6 @@
 <script setup>
 import { onUnmounted, ref } from "vue";
-import { router } from "@inertiajs/vue3";
+import { router, usePage } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Modal from "@/Components/Modal.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
@@ -13,9 +13,18 @@ const boardState = ref(props.game.state ?? [0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const gameState = useGameState();
 const players = ref([]);
 
+const page = usePage();
+
 const xTurn = computed(
   () => boardState.value.reduce((carry, value) => carry + value, 0) === 0,
 );
+const yourTurn = computed(() => {
+  if (props.game.player_one_id === page.props.auth.user.id) {
+    return xTurn.value;
+  }
+
+  return !xTurn.value;
+});
 
 const lines = [
   // rows
@@ -41,13 +50,22 @@ Echo.join(`games.${props.game.id}`)
   .leaving(
     (user) =>
       (players.value = players.value.filter(({ id }) => id !== user.id)),
-  );
+  )
+  .listen("PlayerMadeMove", ({ game }) => {
+    boardState.value = game.state;
+
+    checkForVictory();
+  });
 
 onUnmounted(() => {
   Echo.leave(`games.${props.game.id}`);
 });
 
 const fillSquare = (index) => {
+  if (!yourTurn.value) {
+    return;
+  }
+
   boardState.value[index] = xTurn.value ? -1 : 1;
 
   router.put(route("games.update", props.game.id), {
@@ -66,23 +84,33 @@ const checkForVictory = () => {
 
   if (winningLine === -3) {
     gameState.change(gameStates.XWins);
+
     return;
   }
 
   if (winningLine === 3) {
     gameState.change(gameStates.OWins);
+
     return;
   }
 
   if (!boardState.value.includes(0)) {
     gameState.change(gameStates.Stalemate);
+
+    return;
   }
+
+  gameState.change(gameStates.InProgress);
 };
 
 const resetGame = () => {
   boardState.value = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   gameState.change(gameStates.InProgress);
+
+  router.put(route("games.update", props.game.id), {
+    state: boardState.value,
+  });
 };
 </script>
 
@@ -115,6 +143,7 @@ const resetGame = () => {
         <li class="flex items-center gap-2">
           <span
             class="bg-gray-300 px-2 py-0.5 font-bold font-mono rounded dark:bg-gray-600"
+            :class="{ 'bg-green-200 dark:bg-green-600': xTurn }"
           >
             X
           </span>
@@ -131,6 +160,7 @@ const resetGame = () => {
         <li v-if="game.player_two" class="flex items-center gap-2">
           <span
             class="bg-gray-300 px-2 py-0.5 font-bold font-mono rounded dark:bg-gray-600"
+            :class="{ 'bg-green-200 dark:bg-green-600': !xTurn }"
           >
             O
           </span>
